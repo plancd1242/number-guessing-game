@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Number Guessing Game</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s ease;
+    }
+
+    .app {
+      background: #111827;
+      border-radius: 16px;
+      padding: 24px 28px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+      width: 360px;
+      max-width: 90vw;
+      text-align: center;
+      border: 1px solid #1f2933;
+      transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 4px;
+      font-size: 1.6rem;
+    }
+
+    .subtitle {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+      color: #9ca3af;
+    }
+
+    .highscore,
+    .streak {
+      margin-top: 0;
+      font-size: 0.85rem;
+    }
+
+    .highscore {
+      margin-bottom: 4px;
+      color: #facc15;
+    }
+
+    .streak {
+      margin-bottom: 18px;
+      color: #fb923c;
+    }
+
+    label {
+      font-size: 0.9rem;
+    }
+
+    select,
+    input[type="number"] {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      background: #22c55e;
+      color: #022c22;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(34, 197, 94, 0.4);
+      background: #16a34a;
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    #gameArea {
+      margin-top: 18px;
+      text-align: left;
+    }
+
+    #rangeText {
+      margin: 0 0 10px 0;
+      font-size: 0.95rem;
+      color: #d1d5db;
+    }
+
+    #message {
+      margin-top: 10px;
+      min-height: 20px;
+      font-size: 0.95rem;
+    }
+
+    #attempts {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .buttons-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .buttons-row button {
+      flex: 1;
+    }
+
+    /* YOU WIN overlay + animation */
+    .win-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      animation: win-pop 1.2s ease-out forwards;
+      z-index: 999;
+    }
+
+    .win-text {
+      font-size: 3rem;
+      font-weight: 800;
+      color: #facc15;
+      text-shadow: 0 0 20px rgba(250, 204, 21, 0.8);
+    }
+
+    @keyframes win-pop {
+      0% {
+        opacity: 0;
+        transform: scale(0.4) rotate(-10deg);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1.1) rotate(5deg);
+      }
+      70% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.9) rotate(0deg);
+      }
+    }
+
+    /* THEMED COLORS PER DIFFICULTY */
+
+    /* Easy: green/relaxed */
+    body.difficulty-easy {
+      background: #022c22;
+    }
+    body.difficulty-easy .app {
+      border-color: #22c55e;
+      box-shadow: 0 18px 45px rgba(34, 197, 94, 0.6);
+    }
+
+    /* Medium: blue */
+    body.difficulty-medium {
+      background: #0f172a;
+    }
+    body.difficulty-medium .app {
+      border-color: #38bdf8;
+      box-shadow: 0 18px 45px rgba(56, 189, 248, 0.6);
+    }
+
+    /* Hard: purple/red */
+    body.difficulty-hard {
+      background: #1e1032;
+    }
+    body.difficulty-hard .app {
+      border-color: #a855f7;
+      box-shadow: 0 18px 45px rgba(168, 85, 247, 0.7);
+    }
+
+    /* Insane: pink/neon */
+    body.difficulty-insane {
+      background: #020617;
+    }
+    body.difficulty-insane .app {
+      border-color: #f97316;
+      box-shadow: 0 18px 45px rgba(249, 115, 22, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Number Guessing Game</h1>
+    <p class="subtitle">Pick a difficulty, then try to guess the secret number.</p>
+    <p id="highScore" class="highscore">🥇 Best score: —</p>
+    <p id="streak" class="streak">🔥 Win streak: 0</p>
+
+    <div class="center">
+      <label for="difficulty">Difficulty:</label>
+      <br>
+      <select id="difficulty">
+        <option value="10">Easy (1–10)</option>
+        <option value="50">Medium (1–50)</option>
+        <option value="100">Hard (1–100)</option>
+        <option value="1000">Insane (1–1000)</option>
+      </select>
+      <br>
+      <button id="startBtn">Start Game</button>
+    </div>
+
+    <div id="gameArea" style="display:none;">
+      <p id="rangeText"></p>
+      <input type="number" id="guessInput" placeholder="Enter your guess">
+      <div class="buttons-row">
+        <button id="guessBtn">Guess</button>
+        <button id="restartBtn" style="display:none;">Play Again</button>
+      </div>
+      <p id="message"></p>
+      <p id="attempts"></p>
+    </div>
+  </div>
+
+  <script>
+    let secretNumber = null;
+    let maxNumber = null;
+    let attempts = 0;
+    let highScore = null;
+    let winStreak = 0;
+    let audioCtx = null;
+
+    const startBtn = document.getElementById("startBtn");
+    const guessBtn = document.getElementById("guessBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const difficultySelect = document.getElementById("difficulty");
+    const gameArea = document.getElementById("gameArea");
+    const rangeText = document.getElementById("rangeText");
+    const guessInput = document.getElementById("guessInput");
+    const message = document.getElementById("message");
+    const attemptsText = document.getElementById("attempts");
+    const highScoreText = document.getElementById("highScore");
+    const streakText = document.getElementById("streak");
+
+    // --- SOUND HELPERS ---
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    function playTone(frequency, duration = 0.15, type = "sine", volume = 0.2) {
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.value = frequency;
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch (e) {
+        // If audio isn't allowed or fails, just ignore it.
+      }
+    }
+
+    function playLowBeep() {
+      playTone(220, 0.18, "square");  // too low
+    }
+
+    function playHighBeep() {
+      playTone(440, 0.18, "square");  // too high
+    }
+
+    function playWinJingle() {
+      // Simple 3-note jingle
+      playTone(523.25, 0.18, "triangle"); // C
+      setTimeout(() => playTone(659.25, 0.18, "triangle"), 180); // E
+      setTimeout(() => playTone(783.99, 0.25, "triangle"), 360); // G
+    }
+
+    function playHoverBeep() {
+      playTone(880, 0.07, "sine", 0.08); // quick light beep
+    }
+
+    // --- HIGHSCORE HELPERS ---
+
+    function loadHighScore() {
+      const stored = localStorage.getItem("numberGameHighScore");
+      if (stored !== null) {
+        highScore = parseInt(stored, 10);
+        if (!isNaN(highScore)) {
+          highScoreText.textContent = "🥇 Best score: " + highScore + " tries";
+          return;
+        }
+      }
+      highScoreText.textContent = "🥇 Best score: —";
+    }
+
+    function updateHighScoreIfNeeded() {
+      if (highScore === null || attempts < highScore) {
+        highScore = attempts;
+        localStorage.setItem("numberGameHighScore", String(highScore));
+        highScoreText.textContent =
+          "🥇 Best score: " + highScore + " tries (new record!)";
+      }
+    }
+
+    function updateStreakDisplay() {
+      streakText.textContent = "🔥 Win streak: " + winStreak;
+    }
+
+    // --- WIN ANIMATION ---
+
+    function showWinAnimation() {
+      const overlay = document.createElement("div");
+      overlay.className = "win-overlay";
+
+      const text = document.createElement("div");
+      text.className = "win-text";
+      text.textContent = "YOU WIN! 🎉";
+
+      overlay.appendChild(text);
+      document.body.appendChild(overlay);
+
+      overlay.addEventListener("animationend", () => {
+        overlay.remove();
+      });
+    }
+
+    // --- DIFFICULTY THEME ---
+
+    function applyDifficultyTheme() {
+      const value = parseInt(difficultySelect.value, 10);
+      document.body.classList.remove(
+        "difficulty-easy",
+        "difficulty-medium",
+        "difficulty-hard",
+        "difficulty-insane"
+      );
+
+      if (value === 10) {
+        document.body.classList.add("difficulty-easy");
+      } else if (value === 50) {
+        document.body.classList.add("difficulty-medium");
+      } else if (value === 100) {
+        document.body.classList.add("difficulty-hard");
+      } else if (value === 1000) {
+        document.body.classList.add("difficulty-insane");
+      }
+    }
+
+    // --- GAME LOGIC ---
+
+    function startGame() {
+      maxNumber = parseInt(difficultySelect.value, 10);
+      secretNumber = Math.floor(Math.random() * maxNumber) + 1;
+      attempts = 0;
+
+      applyDifficultyTheme();
+
+      gameArea.style.display = "block";
+      restartBtn.style.display = "none";
+      message.textContent = "";
+      attemptsText.textContent = "";
+      guessInput.value = "";
+      rangeText.textContent =
+        "I am thinking of a number between 1 and " + maxNumber + ".";
+      guessInput.focus();
+    }
+
+    function makeGuess() {
+      const guess = parseInt(guessInput.value, 10);
+
+      if (isNaN(guess)) {
+        message.textContent = "That’s not a number. Try again.";
+        return;
+      }
+      if (guess < 1 || guess > maxNumber) {
+        message.textContent =
+          "Your guess must be between 1 and " + maxNumber + ".";
+        return;
+      }
+
+      attempts++;
+
+      if (guess < secretNumber) {
+        message.textContent = "Too low! Try again.";
+        playLowBeep();
+      } else if (guess > secretNumber) {
+        message.textContent = "Too high! Try again.";
+        playHighBeep();
+      } else {
+        message.textContent =
+          "🎉 You got it! The number was " + secretNumber + ".";
+        attemptsText.textContent =
+          "✅ You guessed it in " + attempts + " tries.";
+        restartBtn.style.display = "inline-block";
+
+        winStreak += 1;
+        updateStreakDisplay();
+
+        playWinJingle();
+        showWinAnimation();
+        updateHighScoreIfNeeded();
+      }
+
+      guessInput.value = "";
+      guessInput.focus();
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    startBtn.addEventListener("click", startGame);
+    guessBtn.addEventListener("click", makeGuess);
+    restartBtn.addEventListener("click", restartGame);
+
+    // Let player press Enter to guess
+    guessInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        makeGuess();
+      }
+    });
+
+    // Hover sounds for main buttons
+    [startBtn, guessBtn, restartBtn].forEach((btn) => {
+      btn.addEventListener("mouseover", () => {
+        playHoverBeep();
+      });
+    });
+
+    // Update theme when difficulty dropdown changes (before starting)
+    difficultySelect.addEventListener("change", applyDifficultyTheme);
+
+    // Load highscore and initial streak on page load
+    loadHighScore();
+    updateStreakDisplay();
+    applyDifficultyTheme();
+  </script>
+</body>
+</html>
